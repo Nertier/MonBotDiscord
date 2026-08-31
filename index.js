@@ -64,58 +64,53 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
-    // COMMANDE : /stats
+    // COMMANDE : /stats (MODIFIÉE POUR LE WEBSCRAPING)
     if (commandName === 'stats') {
         await interaction.deferReply(); 
 
         try {
-            const apiKey = process.env.FORTNITE_API_KEY;
-            if (!apiKey) {
-                return interaction.editReply("❌ La clé d'API (FORTNITE_API_KEY) n'est pas configurée dans les variables d'environnement.");
-            }
-
-            // Requête vers l'API Fortnite avec la clé d'authentification
-            const response = await fetch('https://fortnite-api.com/v1/creative/island?code=8199-8353-2193', {
-                method: 'GET',
-                headers: {
-                    'Authorization': apiKey
+            // L'URL de la page fortnite.gg à scrapper
+            const targetUrl = 'https://fortnite.gg/island/8199-8353-2193';
+            
+            // Requête vers la page. On ajoute un faux User-Agent pour simuler un vrai navigateur
+            // et on force la langue en anglais pour que nos mots clés fonctionnent.
+            const response = await fetch(targetUrl, {
+                headers: { 
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+                    'Accept-Language': 'en-US,en;q=0.9'
                 }
             });
 
-            // Si la carte n'est pas trouvée via cet endpoint précis, requête de secours vers le service public
-            let joueursActuels = 0;
-            let favoris = 0;
-
-            if (response.ok) {
-                const data = await response.json();
-                joueursActuels = data?.data?.activePlayers ?? data?.data?.stats?.ccu ?? 0;
-                favoris = data?.data?.favorites ?? data?.data?.stats?.favorites ?? 0;
-            } else {
-                // Secours direct sur la page publique de la carte
-                const fallbackRes = await fetch('https://fortnite.gg/island?code=8199-8353-2193', {
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
-                });
-                if (fallbackRes.ok) {
-                    const html = await fallbackRes.text();
-                    const playersMatch = html.match(/([\d\s,]+)\s*playing/i) || html.match(/players?["':\s]+([\d\s,]+)/i);
-                    const favMatch = html.match(/([\d\s,]+)\s*fav/i) || html.match(/favorites?["':\s]+([\d\s,]+)/i);
-
-                    if (playersMatch) joueursActuels = playersMatch[1].trim();
-                    if (favMatch) favoris = favMatch[1].trim();
-                }
+            if (!response.ok) {
+                throw new Error(`Erreur lors du webscrapping: ${response.status}`);
             }
 
+            // On récupère le code source de la page
+            const html = await response.text();
+
+            // On retire toutes les balises HTML <...> pour se retrouver avec du texte brut
+            const textContent = html.replace(/<[^>]+>/g, ' ');
+
+            // Regex pour chercher un chiffre (pouvant contenir virgules ou "K") 
+            // se trouvant juste avant les mots "Players right now" et "Favorites"
+            const playersMatch = textContent.match(/([\d.,kK]+)\s*(?:#\s*)?Players right now/i);
+            const favMatch = textContent.match(/([\d.,kK]+)\s*(?:#\s*)?Favorites/i);
+
+            // On extrait les résultats s'ils existent, sinon on met '0'
+            const joueursActuels = playersMatch ? playersMatch[1].trim() : '0';
+            const favoris = favMatch ? favMatch[1].trim() : '0';
+
             const messageStats = 
-                `Voici les stats de la map DODO PARTY 2.0: \n` +
-                `Joueur actuel: ${joueursActuels}\n` +
-                `favoris actuel: ${favoris}\n` +
-                `code: 8199-8353-2193\n` +
-                `créateur forntite: skar9272727`;
+                `Voici les stats de la map **DODO PARTY 2.0** :\n\n` +
+                `👥 Joueurs actuels : **${joueursActuels}**\n` +
+                `⭐ Favoris actuels : **${favoris}**\n` +
+                `🗺️ Code : 8199-8353-2193\n` +
+                `🛠️ Créateur : skar9272727`;
 
             await interaction.editReply(messageStats);
 
         } catch (error) {
-            console.error('Erreur lors de la récupération des stats Fortnite :', error);
+            console.error('Erreur lors du webscrapping Fortnite :', error);
             await interaction.editReply("❌ Impossible de récupérer les statistiques de la map pour le moment.");
         }
     }
