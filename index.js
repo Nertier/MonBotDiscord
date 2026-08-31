@@ -26,7 +26,6 @@ client.on('interactionCreate', async interaction => {
         const target = interaction.options.getMember('membre');
         const minutes = interaction.options.getInteger('temps');
 
-        // Vérification des permissions
         if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
             return interaction.reply({ content: '❌ Tu n\'as pas la permission de mute des membres.', ephemeral: true });
         }
@@ -67,27 +66,30 @@ client.on('interactionCreate', async interaction => {
 
     // COMMANDE : /stats
     if (commandName === 'stats') {
-        // On fait patienter l'utilisateur pendant que le bot contacte l'API Fortnite
         await interaction.deferReply(); 
 
         try {
-            // Appel à l'API pour récupérer les infos de ta map
-            const response = await fetch('https://fortnite-api.com/v1/creative/island/8199-8353-2193');
+            // API publique Fortnite Creative (Fortnite.FYI)
+            const response = await fetch('https://hnnpaewhugfyoomcuiyg.supabase.co/functions/v1/island-embed-widget?code=8199-8353-2193&format=json');
+
+            if (!response.ok) {
+                throw new Error(`Réponse de l'API invalide (Statut ${response.status})`);
+            }
+
             const data = await response.json();
 
-            // Récupération des données (si l'API ne renvoie rien, on met "Indisponible")
-            const joueursActuels = data?.data?.activePlayers ?? "Indisponible"; 
-            const favoris = data?.data?.favorites ?? "Indisponible"; 
+            // Récupération des valeurs en temps réel depuis l'API
+            const joueursActuels = data?.peak_ccu ?? data?.unique_players ?? 0;
+            const favoris = data?.favorites ?? 0;
 
-            // Création du message de réponse
+            // Formatage exact de la réponse
             const messageStats = 
-                `Voici les stats de la map **DODO PARTY 2.0** :\n` +
-                `Joueur actuel: **${joueursActuels}**\n` +
-                `Favoris actuel: **${favoris}**\n` +
-                `Code: **8199-8353-2193**\n` +
-                `Créateur fortnite: **skar9272727**`;
+                `Voici les stats de la map DODO PARTY 2.0: \n` +
+                `Joueur actuel: ${joueursActuels}\n` +
+                `favoris actuel: ${favoris}\n` +
+                `code: 8199-8353-2193\n` +
+                `créateur forntite: skar9272727`;
 
-            // On envoie le message final
             await interaction.editReply(messageStats);
 
         } catch (error) {
