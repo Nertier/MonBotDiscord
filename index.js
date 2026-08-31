@@ -64,6 +64,37 @@ client.on('interactionCreate', async interaction => {
             await interaction.reply({ content: '❌ Impossible de demute ce membre.', ephemeral: true });
         }
     }
+
+    // COMMANDE : /stats
+    if (commandName === 'stats') {
+        // On fait patienter l'utilisateur pendant que le bot contacte l'API Fortnite
+        await interaction.deferReply(); 
+
+        try {
+            // Appel à l'API pour récupérer les infos de ta map
+            const response = await fetch('https://fortnite-api.com/v1/creative/island/8199-8353-2193');
+            const data = await response.json();
+
+            // Récupération des données (si l'API ne renvoie rien, on met "Indisponible")
+            const joueursActuels = data?.data?.activePlayers ?? "Indisponible"; 
+            const favoris = data?.data?.favorites ?? "Indisponible"; 
+
+            // Création du message de réponse
+            const messageStats = 
+                `Voici les stats de la map **DODO PARTY 2.0** :\n` +
+                `Joueur actuel: **${joueursActuels}**\n` +
+                `Favoris actuel: **${favoris}**\n` +
+                `Code: **8199-8353-2193**\n` +
+                `Créateur fortnite: **skar9272727**`;
+
+            // On envoie le message final
+            await interaction.editReply(messageStats);
+
+        } catch (error) {
+            console.error('Erreur lors de la récupération des stats Fortnite:', error);
+            await interaction.editReply("❌ Impossible de récupérer les statistiques de la map pour le moment.");
+        }
+    }
 });
 
 client.login(process.env.TOKEN);
