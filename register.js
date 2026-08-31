@@ -20,7 +20,11 @@ const commands = [
         .addUserOption(option => 
             option.setName('membre')
                 .setDescription('La personne à demute')
-                .setRequired(true))
+                .setRequired(true)),
+
+    new SlashCommandBuilder()
+        .setName('stats')
+        .setDescription('Affiche les statistiques de la map Fortnite DODO PARTY 2.0')
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
