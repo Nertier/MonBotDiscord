@@ -64,41 +64,46 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
-    // COMMANDE : /stats (MODIFIÉE POUR LE WEBSCRAPING)
+    // COMMANDE : /stats (WEBSCRAPING AMÉLIORÉ)
     if (commandName === 'stats') {
         await interaction.deferReply(); 
 
         try {
-            // L'URL de la page fortnite.gg à scrapper
             const targetUrl = 'https://fortnite.gg/island/8199-8353-2193';
             
-            // Requête vers la page. On ajoute un faux User-Agent pour simuler un vrai navigateur
-            // et on force la langue en anglais pour que nos mots clés fonctionnent.
+            // On ajoute des headers très complets pour imiter parfaitement un humain sur Chrome
             const response = await fetch(targetUrl, {
+                method: 'GET',
                 headers: { 
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-                    'Accept-Language': 'en-US,en;q=0.9'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-User': '?1',
+                    'Cache-Control': 'max-age=0'
                 }
             });
 
             if (!response.ok) {
-                throw new Error(`Erreur lors du webscrapping: ${response.status}`);
+                // Si la page bloque, on jette une erreur avec le code exact (ex: 403)
+                throw new Error(`Accès refusé par le site (Code: ${response.status})`);
             }
 
-            // On récupère le code source de la page
             const html = await response.text();
 
-            // On retire toutes les balises HTML <...> pour se retrouver avec du texte brut
+            // On retire les balises HTML pour extraire le texte
             const textContent = html.replace(/<[^>]+>/g, ' ');
 
-            // Regex pour chercher un chiffre (pouvant contenir virgules ou "K") 
-            // se trouvant juste avant les mots "Players right now" et "Favorites"
+            // Regex améliorée pour capturer les nombres
             const playersMatch = textContent.match(/([\d.,kK]+)\s*(?:#\s*)?Players right now/i);
             const favMatch = textContent.match(/([\d.,kK]+)\s*(?:#\s*)?Favorites/i);
 
-            // On extrait les résultats s'ils existent, sinon on met '0'
-            const joueursActuels = playersMatch ? playersMatch[1].trim() : '0';
-            const favoris = favMatch ? favMatch[1].trim() : '0';
+            const joueursActuels = playersMatch ? playersMatch[1].trim() : 'Introuvable';
+            const favoris = favMatch ? favMatch[1].trim() : 'Introuvable';
 
             const messageStats = 
                 `Voici les stats de la map **DODO PARTY 2.0** :\n\n` +
@@ -110,8 +115,9 @@ client.on('interactionCreate', async interaction => {
             await interaction.editReply(messageStats);
 
         } catch (error) {
-            console.error('Erreur lors du webscrapping Fortnite :', error);
-            await interaction.editReply("❌ Impossible de récupérer les statistiques de la map pour le moment.");
+            console.error('Erreur technique détaillée :', error);
+            // On affiche désormais l'erreur exacte directement sur Discord !
+            await interaction.editReply(`❌ Impossible de récupérer les statistiques.\n**Erreur :** \`${error.message}\``);
         }
     }
 });
