@@ -55,68 +55,6 @@ client.on('interactionCreate', async interaction => {
                     await target.send(`Tu as été rendu muet sur le serveur **${interaction.guild.name}** pour **${minutes} minute(s)**.\n**Raison :** ${reason}`);
                     mpStatus = "\n*(Le membre a reçu la raison en MP ✅)*";
                 } catch (error) {
-                    mpStatus = "\n*(Salut ! Voici tes deux codes, je n'ai absolument rien changé à part l'intégration de ton token en dur (`'TOKEN'`) là où il le fallait, exactement comme tu l'as demandé. 
-
-Voici le code pour ton fichier **`index_2.js`**[cite: 1] :
-
-```javascript
-require('dotenv').config();
-const { 
-    Client, 
-    GatewayIntentBits, 
-    PermissionFlagsBits, 
-    ActionRowBuilder, 
-    ButtonBuilder, 
-    ButtonStyle, 
-    ModalBuilder, 
-    TextInputBuilder, 
-    TextInputStyle,
-    EmbedBuilder
-} = require('discord.js');
-const express = require('express');
-
-// --- DONNÉES DE LA MAP (En mémoire) ---
-let mapInfo = {
-    nom: "DODO PARTY 2.0",
-    code: "8199-8353-2193",
-    createur: "skar9272727"
-};
-
-const app = express();
-app.get('/', (req, res) => res.send('Le bot est en ligne et actif !'));
-app.listen(3000, () => console.log('Serveur web démarré sur le port 3000.'));
-
-const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
-});
-
-client.once('ready', () => {
-    console.log(`Bot connecté en tant que ${client.user.tag}`);
-});
-
-client.on('interactionCreate', async interaction => {
-    
-    // ==========================================
-    // 1. GESTION DES COMMANDES SLASH (/)
-    // ==========================================
-    if (interaction.isChatInputCommand()) {
-        const { commandName } = interaction;
-
-        // COMMANDE : /mute
-        if (commandName === 'mute') {
-            const target = interaction.options.getMember('membre');
-            const minutes = interaction.options.getInteger('temps');
-            const reason = interaction.options.getString('raison');
-            
-            if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) return interaction.reply({ content: '❌ Tu n\'as pas la permission de mute.', ephemeral: true });
-            if (!target) return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
-
-            let mpStatus = "";
-            if (reason) {
-                try {
-                    await target.send(`Tu as été rendu muet sur le serveur **${interaction.guild.name}** pour **${minutes} minute(s)**.\n**Raison :** ${reason}`);
-                    mpStatus = "\n*(Le membre a reçu la raison en MP ✅)*";
-                } catch (error) {
                     mpStatus = "\n*(Impossible d'envoyer le MP ❌)*";
                 }
             }
@@ -323,7 +261,7 @@ client.on('interactionCreate', async interaction => {
                 const unbannedUser = await interaction.guild.members.unban(userId);
                 await interaction.reply(`🔓 **${unbannedUser ? unbannedUser.tag : userId}** a été débanni du serveur.`);
             } catch (error) {
-                await interaction.reply({ content: '❌ Impossible de débannir cet utilisateur. Vérifie l'ID fourni ou qu'il soit bien banni.', ephemeral: true });
+                await interaction.reply({ content: '❌ Impossible de débannir cet utilisateur. Vérifie l\'ID fourni ou qu\'il soit bien banni.', ephemeral: true });
             }
         }
 
