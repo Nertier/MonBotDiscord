@@ -23,11 +23,6 @@ const commands = [
                 .setRequired(true)),
 
     new SlashCommandBuilder()
-        .setName('stats')
-        .setDescription('Affiche les statistiques de la map Fortnite DODO PARTY 2.0'),
-
-    // NOUVELLE COMMANDE : /kick
-    new SlashCommandBuilder()
         .setName('kick')
         .setDescription('Exclure une personne du serveur')
         .addUserOption(option => 
@@ -45,7 +40,16 @@ const commands = [
                 .addChoices(
                     { name: 'OUI', value: 'oui' },
                     { name: 'NON', value: 'non' }
-                ))
+                )),
+
+    new SlashCommandBuilder()
+        .setName('info')
+        .setDescription('Affiche les informations de la map de façon cachée'),
+
+    new SlashCommandBuilder()
+        .setName('modif')
+        .setDescription('Panneau de configuration du bot (Mods uniquement)')
+
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
