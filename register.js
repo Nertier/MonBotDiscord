@@ -24,7 +24,28 @@ const commands = [
 
     new SlashCommandBuilder()
         .setName('stats')
-        .setDescription('Affiche les statistiques de la map Fortnite DODO PARTY 2.0')
+        .setDescription('Affiche les statistiques de la map Fortnite DODO PARTY 2.0'),
+
+    // NOUVELLE COMMANDE : /kick
+    new SlashCommandBuilder()
+        .setName('kick')
+        .setDescription('Exclure une personne du serveur')
+        .addUserOption(option => 
+            option.setName('membre')
+                .setDescription('un membre du serveur')
+                .setRequired(true))
+        .addStringOption(option => 
+            option.setName('raison')
+                .setDescription('raison de la sanction')
+                .setRequired(true))
+        .addStringOption(option => 
+            option.setName('mp')
+                .setDescription('Envoyer la raison de la sanction a l\'utilisateur en mp ?')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'OUI', value: 'oui' },
+                    { name: 'NON', value: 'non' }
+                ))
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
