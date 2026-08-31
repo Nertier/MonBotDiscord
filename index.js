@@ -13,7 +13,7 @@ const client = new Client({
 });
 
 client.once('ready', () => {
-    console.log(`🤖 Bot connecté en tant que ${client.user.tag}`);
+    console.log(`Bot connecté en tant que ${client.user.tag}`);
 });
 
 client.on('interactionCreate', async interaction => {
@@ -69,20 +69,42 @@ client.on('interactionCreate', async interaction => {
         await interaction.deferReply(); 
 
         try {
-            // API publique Fortnite Creative (Fortnite.FYI)
-            const response = await fetch('https://hnnpaewhugfyoomcuiyg.supabase.co/functions/v1/island-embed-widget?code=8199-8353-2193&format=json');
-
-            if (!response.ok) {
-                throw new Error(`Réponse de l'API invalide (Statut ${response.status})`);
+            const apiKey = process.env.FORTNITE_API_KEY;
+            if (!apiKey) {
+                return interaction.editReply("❌ La clé d'API (FORTNITE_API_KEY) n'est pas configurée dans les variables d'environnement.");
             }
 
-            const data = await response.json();
+            // Requête vers l'API Fortnite avec la clé d'authentification
+            const response = await fetch('https://fortnite-api.com/v1/creative/island?code=8199-8353-2193', {
+                method: 'GET',
+                headers: {
+                    'Authorization': apiKey
+                }
+            });
 
-            // Récupération des valeurs en temps réel depuis l'API
-            const joueursActuels = data?.peak_ccu ?? data?.unique_players ?? 0;
-            const favoris = data?.favorites ?? 0;
+            // Si la carte n'est pas trouvée via cet endpoint précis, requête de secours vers le service public
+            let joueursActuels = 0;
+            let favoris = 0;
 
-            // Formatage exact de la réponse
+            if (response.ok) {
+                const data = await response.json();
+                joueursActuels = data?.data?.activePlayers ?? data?.data?.stats?.ccu ?? 0;
+                favoris = data?.data?.favorites ?? data?.data?.stats?.favorites ?? 0;
+            } else {
+                // Secours direct sur la page publique de la carte
+                const fallbackRes = await fetch('https://fortnite.gg/island?code=8199-8353-2193', {
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                if (fallbackRes.ok) {
+                    const html = await fallbackRes.text();
+                    const playersMatch = html.match(/([\d\s,]+)\s*playing/i) || html.match(/players?["':\s]+([\d\s,]+)/i);
+                    const favMatch = html.match(/([\d\s,]+)\s*fav/i) || html.match(/favorites?["':\s]+([\d\s,]+)/i);
+
+                    if (playersMatch) joueursActuels = playersMatch[1].trim();
+                    if (favMatch) favoris = favMatch[1].trim();
+                }
+            }
+
             const messageStats = 
                 `Voici les stats de la map DODO PARTY 2.0: \n` +
                 `Joueur actuel: ${joueursActuels}\n` +
@@ -93,7 +115,7 @@ client.on('interactionCreate', async interaction => {
             await interaction.editReply(messageStats);
 
         } catch (error) {
-            console.error('Erreur lors de la récupération des stats Fortnite:', error);
+            console.error('Erreur lors de la récupération des stats Fortnite :', error);
             await interaction.editReply("❌ Impossible de récupérer les statistiques de la map pour le moment.");
         }
     }
