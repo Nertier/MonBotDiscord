@@ -64,14 +64,56 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
-    // COMMANDE : /stats (WEBSCRAPING AMÉLIORÉ)
+    // COMMANDE : /kick
+    if (commandName === 'kick') {
+        const target = interaction.options.getMember('membre');
+        const reason = interaction.options.getString('raison');
+        const sendMp = interaction.options.getString('mp');
+
+        // Vérification de la permission (ModerateMembers comme demandé)
+        if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+            return interaction.reply({ content: '❌ Tu n\'as pas la permission d\'exclure des membres.', ephemeral: true });
+        }
+
+        if (!target) {
+            return interaction.reply({ content: '❌ Membre introuvable sur le serveur.', ephemeral: true });
+        }
+
+        // Vérifie si le bot a un rôle suffisant pour kick ce membre
+        if (!target.kickable) {
+            return interaction.reply({ content: '❌ Je ne peux pas exclure ce membre. Mon rôle est peut-être inférieur au sien.', ephemeral: true });
+        }
+
+        let mpStatus = "";
+
+        // Envoi du MP AVANT l'exclusion (sinon le bot ne peut plus lui parler)
+        if (sendMp === 'oui') {
+            try {
+                await target.send(`Tu as été expulsé du serveur **${interaction.guild.name}**.\n**Raison :** ${reason}`);
+                mpStatus = "*(Le membre a reçu la raison en MP ✅)*";
+            } catch (error) {
+                // L'utilisateur a bloqué ses MP ou a bloqué le bot
+                mpStatus = "*(Impossible d'envoyer le MP, l'utilisateur a bloqué ses messages ❌)*";
+            }
+        }
+
+        // Exclusion du membre
+        try {
+            await target.kick(reason);
+            await interaction.reply(`👢 **${target.user.tag}** a été expulsé.\n**Raison :** ${reason}\n${mpStatus}`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'exclusion du membre.', ephemeral: true });
+        }
+    }
+
+    // COMMANDE : /stats
     if (commandName === 'stats') {
         await interaction.deferReply(); 
 
         try {
             const targetUrl = 'https://fortnite.gg/island/8199-8353-2193';
             
-            // On ajoute des headers très complets pour imiter parfaitement un humain sur Chrome
             const response = await fetch(targetUrl, {
                 method: 'GET',
                 headers: { 
@@ -89,16 +131,12 @@ client.on('interactionCreate', async interaction => {
             });
 
             if (!response.ok) {
-                // Si la page bloque, on jette une erreur avec le code exact (ex: 403)
                 throw new Error(`Accès refusé par le site (Code: ${response.status})`);
             }
 
             const html = await response.text();
-
-            // On retire les balises HTML pour extraire le texte
             const textContent = html.replace(/<[^>]+>/g, ' ');
 
-            // Regex améliorée pour capturer les nombres
             const playersMatch = textContent.match(/([\d.,kK]+)\s*(?:#\s*)?Players right now/i);
             const favMatch = textContent.match(/([\d.,kK]+)\s*(?:#\s*)?Favorites/i);
 
@@ -116,7 +154,6 @@ client.on('interactionCreate', async interaction => {
 
         } catch (error) {
             console.error('Erreur technique détaillée :', error);
-            // On affiche désormais l'erreur exacte directement sur Discord !
             await interaction.editReply(`❌ Impossible de récupérer les statistiques.\n**Erreur :** \`${error.message}\``);
         }
     }
