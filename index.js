@@ -1,6 +1,23 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
+const { 
+    Client, 
+    GatewayIntentBits, 
+    PermissionFlagsBits, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
+    ModalBuilder, 
+    TextInputBuilder, 
+    TextInputStyle 
+} = require('discord.js');
 const express = require('express');
+
+// --- DONNÉES DE LA MAP (En mémoire) ---
+let mapInfo = {
+    nom: "DODO PARTY 2.0",
+    code: "8199-8353-2193",
+    createur: "skar9272727"
+};
 
 // --- PARTIE SERVEUR WEB (Pour le 24/7) ---
 const app = express();
@@ -17,144 +34,174 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+    
+    // ==========================================
+    // 1. GESTION DES COMMANDES SLASH (/)
+    // ==========================================
+    if (interaction.isChatInputCommand()) {
+        const { commandName } = interaction;
 
-    const { commandName } = interaction;
+        // COMMANDE : /mute
+        if (commandName === 'mute') {
+            const target = interaction.options.getMember('membre');
+            const minutes = interaction.options.getInteger('temps');
+            if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) return interaction.reply({ content: '❌ Tu n\'as pas la permission de mute.', ephemeral: true });
+            if (!target) return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
 
-    // COMMANDE : /mute
-    if (commandName === 'mute') {
-        const target = interaction.options.getMember('membre');
-        const minutes = interaction.options.getInteger('temps');
-
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return interaction.reply({ content: '❌ Tu n\'as pas la permission de mute des membres.', ephemeral: true });
-        }
-        if (!target) {
-            return interaction.reply({ content: '❌ Membre introuvable sur le serveur.', ephemeral: true });
-        }
-
-        const msDuration = minutes * 60 * 1000;
-
-        try {
-            await target.timeout(msDuration, `Mute par ${interaction.user.tag}`);
-            await interaction.reply(`🔇 **${target.user.tag}** a été mute pour **${minutes} minute(s)**.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply({ content: '❌ Impossible de mute ce membre. Vérifie que mon rôle de Bot est placé plus haut que le sien dans les paramètres du serveur.', ephemeral: true });
-        }
-    }
-
-    // COMMANDE : /demute
-    if (commandName === 'demute') {
-        const target = interaction.options.getMember('membre');
-
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return interaction.reply({ content: '❌ Tu n\'as pas la permission de demute des membres.', ephemeral: true });
-        }
-        if (!target) {
-            return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
-        }
-
-        try {
-            await target.timeout(null, `Demute par ${interaction.user.tag}`);
-            await interaction.reply(`🔊 **${target.user.tag}** a été demute.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply({ content: '❌ Impossible de demute ce membre.', ephemeral: true });
-        }
-    }
-
-    // COMMANDE : /kick
-    if (commandName === 'kick') {
-        const target = interaction.options.getMember('membre');
-        const reason = interaction.options.getString('raison');
-        const sendMp = interaction.options.getString('mp');
-
-        // Vérification de la permission (ModerateMembers comme demandé)
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return interaction.reply({ content: '❌ Tu n\'as pas la permission d\'exclure des membres.', ephemeral: true });
-        }
-
-        if (!target) {
-            return interaction.reply({ content: '❌ Membre introuvable sur le serveur.', ephemeral: true });
-        }
-
-        // Vérifie si le bot a un rôle suffisant pour kick ce membre
-        if (!target.kickable) {
-            return interaction.reply({ content: '❌ Je ne peux pas exclure ce membre. Mon rôle est peut-être inférieur au sien.', ephemeral: true });
-        }
-
-        let mpStatus = "";
-
-        // Envoi du MP AVANT l'exclusion (sinon le bot ne peut plus lui parler)
-        if (sendMp === 'oui') {
             try {
-                await target.send(`Tu as été expulsé du serveur **${interaction.guild.name}**.\n**Raison :** ${reason}`);
-                mpStatus = "*(Le membre a reçu la raison en MP ✅)*";
+                await target.timeout(minutes * 60 * 1000, `Mute par ${interaction.user.tag}`);
+                await interaction.reply(`🔇 **${target.user.tag}** a été mute pour **${minutes} minute(s)**.`);
             } catch (error) {
-                // L'utilisateur a bloqué ses MP ou a bloqué le bot
-                mpStatus = "*(Impossible d'envoyer le MP, l'utilisateur a bloqué ses messages ❌)*";
+                await interaction.reply({ content: '❌ Impossible de mute ce membre.', ephemeral: true });
             }
         }
 
-        // Exclusion du membre
-        try {
-            await target.kick(reason);
-            await interaction.reply(`👢 **${target.user.tag}** a été expulsé.\n**Raison :** ${reason}\n${mpStatus}`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'exclusion du membre.', ephemeral: true });
+        // COMMANDE : /demute
+        if (commandName === 'demute') {
+            const target = interaction.options.getMember('membre');
+            if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) return interaction.reply({ content: '❌ Tu n\'as pas la permission de demute.', ephemeral: true });
+            if (!target) return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
+
+            try {
+                await target.timeout(null, `Demute par ${interaction.user.tag}`);
+                await interaction.reply(`🔊 **${target.user.tag}** a été demute.`);
+            } catch (error) {
+                await interaction.reply({ content: '❌ Impossible de demute ce membre.', ephemeral: true });
+            }
+        }
+
+        // COMMANDE : /kick
+        if (commandName === 'kick') {
+            const target = interaction.options.getMember('membre');
+            const reason = interaction.options.getString('raison');
+            const sendMp = interaction.options.getString('mp');
+
+            if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) return interaction.reply({ content: '❌ Tu n\'as pas la permission d\'exclure.', ephemeral: true });
+            if (!target) return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
+            if (!target.kickable) return interaction.reply({ content: '❌ Je ne peux pas exclure ce membre.', ephemeral: true });
+
+            let mpStatus = "";
+            if (sendMp === 'oui') {
+                try {
+                    await target.send(`Tu as été expulsé du serveur **${interaction.guild.name}**.\n**Raison :** ${reason}`);
+                    mpStatus = "*(Le membre a reçu la raison en MP ✅)*";
+                } catch (error) {
+                    mpStatus = "*(Impossible d'envoyer le MP ❌)*";
+                }
+            }
+
+            try {
+                await target.kick(reason);
+                await interaction.reply(`👢 **${target.user.tag}** a été expulsé.\n**Raison :** ${reason}\n${mpStatus}`);
+            } catch (error) {
+                await interaction.reply({ content: '❌ Erreur lors de l\'exclusion.', ephemeral: true });
+            }
+        }
+
+        // COMMANDE : /info
+        if (commandName === 'info') {
+            const messageInfo = 
+                `Informations de la map :\n` +
+                `Nom: ${mapInfo.nom}\n` +
+                `Code: ${mapInfo.code}\n` +
+                `Créateur fortnite: ${mapInfo.createur}`;
+            
+            // ephemeral: true rend le message invisible pour les autres
+            await interaction.reply({ content: messageInfo, ephemeral: true });
+        }
+
+        // COMMANDE : /modif
+        if (commandName === 'modif') {
+            if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                return interaction.reply({ content: '❌ Seuls les modérateurs peuvent utiliser cette commande.', ephemeral: true });
+            }
+
+            const btnInfo = new ButtonBuilder()
+                .setCustomId('btn_open_modif_info')
+                .setLabel('MODIFIER /INFO')
+                .setStyle(ButtonStyle.Primary);
+
+            const row = new ActionRowBuilder().addComponents(btnInfo);
+
+            const msgMenu = `MODIFIER LE BOT DORO PARTY BOT:\n` +
+                            `commande actuel:\n/kick\n/mute\n/demute\n/info\n/modif`;
+
+            // On envoie le message de base (celui-ci est privé pour ne pas spam le chat)
+            await interaction.reply({ content: msgMenu, components: [row], ephemeral: true });
         }
     }
 
-    // COMMANDE : /stats
-    if (commandName === 'stats') {
-        await interaction.deferReply(); 
+    // ==========================================
+    // 2. GESTION DES BOUTONS
+    // ==========================================
+    if (interaction.isButton()) {
+        // Sécurité : Vérifier que c'est bien un modérateur qui clique !
+        if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+            return interaction.reply({ content: '❌ Tu n\'as pas la permission d\'utiliser ces boutons.', ephemeral: true });
+        }
 
-        try {
-            const targetUrl = 'https://fortnite.gg/island/8199-8353-2193';
+        // Bouton : MODIFIER /INFO
+        if (interaction.customId === 'btn_open_modif_info') {
             
-            const response = await fetch(targetUrl, {
-                method: 'GET',
-                headers: { 
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1',
-                    'Sec-Fetch-Dest': 'document',
-                    'Sec-Fetch-Mode': 'navigate',
-                    'Sec-Fetch-Site': 'none',
-                    'Sec-Fetch-User': '?1',
-                    'Cache-Control': 'max-age=0'
-                }
-            });
+            const btnNom = new ButtonBuilder().setCustomId('btn_modif_nom').setLabel('MODIFIER NOM').setStyle(ButtonStyle.Secondary);
+            const btnCode = new ButtonBuilder().setCustomId('btn_modif_code').setLabel('MODIFIER CODE').setStyle(ButtonStyle.Secondary);
+            const btnCrea = new ButtonBuilder().setCustomId('btn_modif_createur').setLabel('MODIFIER CREATEUR FORTNITE').setStyle(ButtonStyle.Secondary);
 
-            if (!response.ok) {
-                throw new Error(`Accès refusé par le site (Code: ${response.status})`);
-            }
+            const row = new ActionRowBuilder().addComponents(btnNom, btnCode, btnCrea);
 
-            const html = await response.text();
-            const textContent = html.replace(/<[^>]+>/g, ' ');
+            const msgPublicInfo = 
+                `MODIFIER /INFO:\n` +
+                `Nom actuel : ${mapInfo.nom}\n` +
+                `Code actuel : ${mapInfo.code}\n` +
+                `Créateur fortnite actuel : ${mapInfo.createur}`;
 
-            const playersMatch = textContent.match(/([\d.,kK]+)\s*(?:#\s*)?Players right now/i);
-            const favMatch = textContent.match(/([\d.,kK]+)\s*(?:#\s*)?Favorites/i);
+            // Ce message est envoyé publiquement comme tu l'as demandé
+            await interaction.reply({ content: msgPublicInfo, components: [row] });
+        }
 
-            const joueursActuels = playersMatch ? playersMatch[1].trim() : 'Introuvable';
-            const favoris = favMatch ? favMatch[1].trim() : 'Introuvable';
+        // Bouton : MODIFIER NOM (Ouvre la fenêtre)
+        if (interaction.customId === 'btn_modif_nom') {
+            const modal = new ModalBuilder().setCustomId('modal_nom').setTitle('Modifier le Nom');
+            const input = new TextInputBuilder().setCustomId('input_nom').setLabel("Nouveau nom :").setStyle(TextInputStyle.Short).setValue(mapInfo.nom);
+            modal.addComponents(new ActionRowBuilder().addComponents(input));
+            await interaction.showModal(modal);
+        }
 
-            const messageStats = 
-                `Voici les stats de la map **DODO PARTY 2.0** :\n\n` +
-                `👥 Joueurs actuels : **${joueursActuels}**\n` +
-                `⭐ Favoris actuels : **${favoris}**\n` +
-                `🗺️ Code : 8199-8353-2193\n` +
-                `🛠️ Créateur : skar9272727`;
+        // Bouton : MODIFIER CODE (Ouvre la fenêtre)
+        if (interaction.customId === 'btn_modif_code') {
+            const modal = new ModalBuilder().setCustomId('modal_code').setTitle('Modifier le Code');
+            const input = new TextInputBuilder().setCustomId('input_code').setLabel("Nouveau code :").setStyle(TextInputStyle.Short).setValue(mapInfo.code);
+            modal.addComponents(new ActionRowBuilder().addComponents(input));
+            await interaction.showModal(modal);
+        }
 
-            await interaction.editReply(messageStats);
+        // Bouton : MODIFIER CREATEUR (Ouvre la fenêtre)
+        if (interaction.customId === 'btn_modif_createur') {
+            const modal = new ModalBuilder().setCustomId('modal_createur').setTitle('Modifier le Créateur');
+            const input = new TextInputBuilder().setCustomId('input_createur').setLabel("Nouveau créateur :").setStyle(TextInputStyle.Short).setValue(mapInfo.createur);
+            modal.addComponents(new ActionRowBuilder().addComponents(input));
+            await interaction.showModal(modal);
+        }
+    }
 
-        } catch (error) {
-            console.error('Erreur technique détaillée :', error);
-            await interaction.editReply(`❌ Impossible de récupérer les statistiques.\n**Erreur :** \`${error.message}\``);
+    // ==========================================
+    // 3. GESTION DES FENÊTRES (MODALS) SOUMISES
+    // ==========================================
+    if (interaction.isModalSubmit()) {
+        
+        if (interaction.customId === 'modal_nom') {
+            mapInfo.nom = interaction.fields.getTextInputValue('input_nom');
+            await interaction.reply({ content: `✅ Le nom de la map a été mis à jour avec succès ! (\`/info\` modifié)`, ephemeral: true });
+        }
+
+        if (interaction.customId === 'modal_code') {
+            mapInfo.code = interaction.fields.getTextInputValue('input_code');
+            await interaction.reply({ content: `✅ Le code de la map a été mis à jour avec succès ! (\`/info\` modifié)`, ephemeral: true });
+        }
+
+        if (interaction.customId === 'modal_createur') {
+            mapInfo.createur = interaction.fields.getTextInputValue('input_createur');
+            await interaction.reply({ content: `✅ Le nom du créateur a été mis à jour avec succès ! (\`/info\` modifié)`, ephemeral: true });
         }
     }
 });
