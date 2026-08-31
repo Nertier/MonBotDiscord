@@ -12,7 +12,11 @@ const commands = [
         .addIntegerOption(option => 
             option.setName('temps')
                 .setDescription('Le temps du mute en minutes')
-                .setRequired(true)),
+                .setRequired(true))
+        .addStringOption(option => 
+            option.setName('raison')
+                .setDescription('Met la raison du mute, laisse vide pour ne pas MP l\'utilisateur')
+                .setRequired(false)),
                 
     new SlashCommandBuilder()
         .setName('demute')
@@ -36,6 +40,38 @@ const commands = [
         .addStringOption(option => 
             option.setName('mp')
                 .setDescription('Envoyer la raison de la sanction a l\'utilisateur en mp ?')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'OUI', value: 'oui' },
+                    { name: 'NON', value: 'non' }
+                )),
+
+    new SlashCommandBuilder()
+        .setName('ban')
+        .setDescription('Bannir une personne du serveur')
+        .addUserOption(option => 
+            option.setName('membre')
+                .setDescription('un membre du serveur')
+                .setRequired(true))
+        .addIntegerOption(option => 
+            option.setName('temps_en_jour')
+                .setDescription('Le temps du ban en jours')
+                .setRequired(true))
+        .addStringOption(option => 
+            option.setName('raison')
+                .setDescription('raison de la sanction')
+                .setRequired(true))
+        .addStringOption(option => 
+            option.setName('mp')
+                .setDescription('Envoyer la raison de la sanction a l\'utilisateur en mp ?')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'OUI', value: 'oui' },
+                    { name: 'NON', value: 'non' }
+                ))
+        .addStringOption(option => 
+            option.setName('ban_perm')
+                .setDescription('Ban permanant l\'utilisateur')
                 .setRequired(true)
                 .addChoices(
                     { name: 'OUI', value: 'oui' },
